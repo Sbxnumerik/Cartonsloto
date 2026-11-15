@@ -20,6 +20,10 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME"
           test -d "$ANDROID_HOME/platforms/android-35"
           test -d "$ANDROID_HOME/build-tools"
+      - name: Install uploaded launcher icon
+        run: |
+          mkdir -p app/src/main/res/drawable-nodpi
+          cp loto_icon.jpg app/src/main/res/drawable-nodpi/loto_icon.jpg
       - name: Build debug APK
         run: gradle :app:assembleDebug --stacktrace
       - uses: actions/upload-artifact@v4
