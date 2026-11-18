@@ -122,24 +122,63 @@ showCards();LinearLayout history=new LinearLayout(this);history.setGravity(Gravi
  void cardSettingsDialog(){new AlertDialog.Builder(this).setTitle("Gestion des cartons").setItems(new String[]{"Modifier un carton","Supprimer des cartons photographiés"},(d,i)->{if(i==0)manageCards();else deleteScannedMenu();}).setNegativeButton("Retour",null).show();}
  void aboutSettingsDialog(){new AlertDialog.Builder(this).setTitle("À propos").setMessage("LotoCartons V4 bêta\\nDéveloppeur : Selim BEYS\\nDéveloppé avec l'aide de l'intelligence artificielle.\\nFonctionnement hors ligne.").setPositiveButton("Fermer",null).show();}
  void personalizationDialog(){
-  LinearLayout content=new LinearLayout(this);content.setOrientation(1);content.setPadding(dp(18),dp(10),dp(18),dp(10));content.setBackgroundColor(0xffeaf4fc);
-  String[] names={"Fond des cartons","Cases vides (grisées)","Numéros","Cases marquées","Fond des cases numérotées"};
-  int[] defaults={0xfff2f2f2,0xffeeeeee,Color.BLACK,0xffa9e9b7,Color.WHITE};
-  String[] keys={"card_bg","empty_bg","number_color","marked_bg","number_bg"};
-  for(int i=0;i<names.length;i++){final int idx=i;Button b=styled(names[i]+"  ●",0xffffffff,0xff172b4d,14,()->chooseSettingsColor(keys[idx],names[idx],defaults[idx]));content.addView(b);}
-  String[] sizes={"Tout petit","Moyen","Grand","Très grand"};
-  Button size=styled("Taille des numéros : "+sizes[Math.max(0,Math.min(3,getPreferences(0).getInt("pref_number_size",1)))],0xffffffff,0xff172b4d,14,()->new AlertDialog.Builder(this).setTitle("Taille des numéros").setSingleChoiceItems(sizes,getPreferences(0).getInt("pref_number_size",1),(d,choice)->{getPreferences(0).edit().putInt("pref_number_size",choice).apply();d.dismiss();render();personalizationDialog();}).setNegativeButton("Annuler",null).show());
-  content.addView(size);
-  Button reset=styled("Rétablir l'affichage d'origine",0xff2479b9,Color.WHITE,14,()->new AlertDialog.Builder(this).setTitle("Affichage d'origine").setMessage("Retrouver les couleurs et tailles de numéros initiales ?").setNegativeButton("Annuler",null).setPositiveButton("Réinitialiser",(d,w)->{getPreferences(0).edit().remove("pref_card_bg").remove("pref_empty_bg").remove("pref_number_color").remove("pref_marked_bg").remove("pref_number_bg").remove("pref_number_size").apply();render();toast("Affichage d'origine rétabli");}).show());content.addView(reset);
-  new AlertDialog.Builder(this).setTitle("Personnalisation").setView(content).setPositiveButton("Fermer",null).show();
+ final String[] keys={"card_bg","empty_bg","number_color","marked_bg","number_bg"};
+ final String[] names={"Fond des cartons","Cases vides (grisées)","Couleur des numéros","Cases marquées","Fond des cases numérotées"};
+ final int[] defaults={0xfff2f2f2,0xffeeeeee,Color.BLACK,0xffa9e9b7,Color.WHITE};
+ final String[] labels={"Blanc","Bleu clair","Bleu","Gris clair","Gris foncé","Noir","Vert","Rouge","Jaune"};
+ final int[] palette={0xffffffff,0xffeaf4fc,0xff2479b9,0xffe0e0e0,0xff64748b,0xff172b4d,0xff82d9a0,0xffe35b5b,0xffffdf72};
+ final int[] chosen=new int[5];for(int i=0;i<5;i++)chosen[i]=getPreferences(0).getInt("pref_"+keys[i],defaults[i]);
+ final int[] selectedSize={Math.max(0,Math.min(3,getPreferences(0).getInt("pref_number_size",1)))};
+ ScrollView scroll=new ScrollView(this);scroll.setBackgroundColor(0xffeaf4fc);
+ LinearLayout page=new LinearLayout(this);page.setOrientation(1);page.setPadding(dp(14),dp(12),dp(14),dp(14));scroll.addView(page);
+ TextView title=text("Personnalisation des cartons",21);title.setTextColor(0xff172b4d);title.setTypeface(null,Typeface.BOLD);page.addView(title);
+ TextView info=text("Prévisualisation avant validation",13);info.setTextColor(0xff64748b);page.addView(info);statSpace(page);
+ LinearLayout preview=statPanel();page.addView(preview);
+ TextView previewTitle=text("APERÇU DU CARTON",14);previewTitle.setTextColor(0xff2479b9);previewTitle.setTypeface(null,Typeface.BOLD);preview.addView(previewTitle);
+ LinearLayout grid=new LinearLayout(this);grid.setOrientation(1);preview.addView(grid);
+ Runnable redraw=()->{
+  grid.removeAllViews();grid.setBackgroundColor(chosen[0]);
+  int[][] sample={{0,12,0,34,0,56,0,78,0},{3,0,23,0,45,0,67,0,89},{0,15,0,37,0,59,0,71,90}};
+  int font=selectedSize[0]==0?14:selectedSize[0]==2?23:selectedSize[0]==3?28:18;
+  for(int[] line:sample){LinearLayout row=new LinearLayout(this);grid.addView(row,new LinearLayout.LayoutParams(-1,dp(43)));
+   for(int n:line){TextView cell=text(n==0?"":String.valueOf(n),font);cell.setTypeface(null,Typeface.BOLD);cell.setTextColor(chosen[2]);cell.setMaxLines(1);cell.setIncludeFontPadding(false);
+    int fill=n==0?chosen[1]:(n==34||n==23)?chosen[3]:chosen[4];cell.setBackground(bg(fill,0xff555555));
+    LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-1,1);lp.setMargins(dp(1),dp(1),dp(1),dp(1));row.addView(cell,lp);}
+  }
+ };redraw.run();statSpace(page);
+ ArrayList<Runnable> updateChecks=new ArrayList<>();
+ for(int ix=0;ix<keys.length;ix++){
+  final int index=ix;LinearLayout section=statPanel();page.addView(section);
+  TextView heading=text(names[ix],15);heading.setGravity(Gravity.START);heading.setTypeface(null,Typeface.BOLD);heading.setTextColor(0xff172b4d);section.addView(heading);
+  HorizontalScrollView horizontal=new HorizontalScrollView(this);horizontal.setHorizontalScrollBarEnabled(false);section.addView(horizontal);
+  LinearLayout swatches=new LinearLayout(this);horizontal.addView(swatches);
+  Runnable update=()->{for(int k=0;k<swatches.getChildCount();k++){LinearLayout item=(LinearLayout)swatches.getChildAt(k);((TextView)item.getChildAt(1)).setText(palette[k]==chosen[index]?"✓":" ");}};updateChecks.add(update);
+  for(int j=0;j<palette.length;j++){
+   final int color=palette[j];LinearLayout swatch=new LinearLayout(this);swatch.setOrientation(1);swatch.setGravity(Gravity.CENTER);swatch.setPadding(dp(3),dp(5),dp(3),dp(5));
+   TextView square=text(" ",15);square.setBackground(bg(color,0xff8596a8));swatch.addView(square,new LinearLayout.LayoutParams(dp(36),dp(32)));
+   TextView check=text(" ",15);check.setTextColor(0xff2479b9);swatch.addView(check);swatches.addView(swatch,new LinearLayout.LayoutParams(dp(45),dp(60)));
+   swatch.setContentDescription(names[index]+" : "+labels[j]);swatch.setOnClickListener(v->{chosen[index]=color;update.run();redraw.run();});
+  }update.run();statSpace(page);
  }
- void chooseSettingsColor(String key,String title,int fallback){
-  String[] labels={"Blanc","Bleu clair","Bleu","Gris clair","Gris foncé","Noir","Vert","Rouge","Jaune"};
-  int[] colors={0xffffffff,0xffeaf4fc,0xff2479b9,0xffe0e0e0,0xff64748b,0xff172b4d,0xff82d9a0,0xffe35b5b,0xffffdf72};
-  int current=getPreferences(0).getInt("pref_"+key,fallback),checked=-1;for(int i=0;i<colors.length;i++)if(colors[i]==current)checked=i;
-  new AlertDialog.Builder(this).setTitle(title).setSingleChoiceItems(labels,checked,(d,i)->{getPreferences(0).edit().putInt("pref_"+key,colors[i]).apply();d.dismiss();render();toast("Couleur enregistrée : "+labels[i]);}).setNegativeButton("Annuler",null).show();
- }
-  void deleteScannedMenu(){
+ LinearLayout sizePanel=statPanel();page.addView(sizePanel);
+ TextView sizeTitle=text("Taille des numéros",15);sizeTitle.setGravity(Gravity.START);sizeTitle.setTextColor(0xff172b4d);sizeTitle.setTypeface(null,Typeface.BOLD);sizePanel.addView(sizeTitle);
+ String[] sizes={"Tout petit","Moyen (taille actuelle)","Grand","Très grand"};
+ RadioGroup group=new RadioGroup(this);group.setOrientation(RadioGroup.VERTICAL);sizePanel.addView(group);
+ for(int i=0;i<sizes.length;i++){final int choice=i;RadioButton option=new RadioButton(this);option.setText(sizes[i]);option.setTextColor(0xff172b4d);option.setTextSize(14);group.addView(option);option.setChecked(selectedSize[0]==i);option.setOnClickListener(v->{selectedSize[0]=choice;redraw.run();});}
+ statSpace(page);
+ Button reset=styled("Rétablir l'affichage d'origine",0xff2479b9,Color.WHITE,14,()->{
+  for(int i=0;i<5;i++)chosen[i]=defaults[i];selectedSize[0]=1;
+  for(int i=0;i<group.getChildCount();i++)((RadioButton)group.getChildAt(i)).setChecked(i==1);
+  for(Runnable update:updateChecks)update.run();redraw.run();
+ });page.addView(reset);
+ AlertDialog dialog=new AlertDialog.Builder(this).setView(scroll).setNegativeButton("Retour",null).setPositiveButton("Valider",(d,w)->{
+  android.content.SharedPreferences.Editor edit=getPreferences(0).edit();
+  for(int i=0;i<keys.length;i++){if(chosen[i]==defaults[i])edit.remove("pref_"+keys[i]);else edit.putInt("pref_"+keys[i],chosen[i]);}
+  if(selectedSize[0]==1)edit.remove("pref_number_size");else edit.putInt("pref_number_size",selectedSize[0]);edit.apply();render();
+ }).create();dialog.show();
+ dialog.getWindow().setLayout(Math.min(getResources().getDisplayMetrics().widthPixels-dp(20),dp(540)),Math.min(getResources().getDisplayMetrics().heightPixels-dp(80),dp(790)));
+}
+ void deleteScannedMenu(){
   ArrayList<Game.Card> scanned=new ArrayList<>();for(Game.Card c:game.cards)if(scannedIds.contains(c.id))scanned.add(c);
   if(scanned.isEmpty()){new AlertDialog.Builder(this).setTitle("Cartons scannés").setMessage("Aucun carton photographié à supprimer. Les cartons PDF ne sont pas concernés.").setPositiveButton("OK",null).show();return;}
   new AlertDialog.Builder(this).setTitle("Supprimer des cartons scannés").setItems(new String[]{"Supprimer un carton","Supprimer tous les cartons scannés ("+scanned.size()+")"},(d,which)->{
