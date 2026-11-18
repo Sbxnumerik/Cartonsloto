@@ -80,12 +80,12 @@ showCards();LinearLayout history=new LinearLayout(this);history.setGravity(Gravi
  interface Callback{void accept(int n);}void numberDialog(String title,Callback cb){EditText e=new EditText(this);e.setInputType(2);new AlertDialog.Builder(this).setTitle(title).setView(e).setNegativeButton("Annuler",null).setPositiveButton("OK",(d,w)->{try{cb.accept(Integer.parseInt(e.getText().toString()));}catch(Exception ex){toast("Numéro invalide");}}).show();}
  void showCards(){ArrayList<Game.Card> list=new ArrayList<>(game.cards);list.sort((a,b)->Integer.compare(game.missing(a),game.missing(b)));if(list.isEmpty())cards.addView(text("Importer un PDF de cartons",22));for(int i=0;i<list.size();i++)cards.addView(cardView(list.get(i),i==0));}
  LinearLayout cardView(Game.Card c,boolean large){
-  LinearLayout box=new LinearLayout(this);box.setOrientation(1);box.setPadding(dp(6),dp(7),dp(6),dp(9));box.setBackgroundColor(large?0xffe5f0fc:0xfff2f2f2);
+  LinearLayout box=new LinearLayout(this);box.setOrientation(1);box.setPadding(dp(6),dp(7),dp(6),dp(9));box.setBackgroundColor(getPreferences(0).getInt("pref_card_bg",large?0xffe5f0fc:0xfff2f2f2));
   TextView heading=text("CARTON N° "+c.id+"   •   "+game.missing(c)+" manquant(s)",large?18:15);
   heading.setTextColor(0xff172b46);heading.setTypeface(null,Typeface.BOLD);heading.setPadding(dp(2),dp(4),dp(2),dp(6));box.addView(heading);
   for(int[] line:c.grid){LinearLayout row=new LinearLayout(this);row.setOrientation(0);box.addView(row,new LinearLayout.LayoutParams(-1,dp(large?56:46)));
-   for(int n:line){TextView cell=new TextView(this);cell.setText(n==0?"":String.valueOf(n));cell.setTextSize(large?21:18);cell.setTextColor(Color.BLACK);cell.setTypeface(null,Typeface.BOLD);cell.setGravity(Gravity.CENTER);cell.setPadding(0,0,0,0);cell.setIncludeFontPadding(false);cell.setMaxLines(1);
-    int fill=n!=0&&game.drawn.contains(n)?0xffa9e9b7:n==0?0xffeeeeee:Color.WHITE;cell.setBackground(bg(fill,0xff555555));
+   for(int n:line){TextView cell=new TextView(this);cell.setText(n==0?"":String.valueOf(n));int selectedSize=getPreferences(0).getInt("pref_number_size",1);int textSize=selectedSize==0?(large?16:14):selectedSize==2?(large?26:23):selectedSize==3?(large?31:28):(large?21:18);cell.setTextSize(textSize);cell.setTextColor(getPreferences(0).getInt("pref_number_color",Color.BLACK));cell.setTypeface(null,Typeface.BOLD);cell.setGravity(Gravity.CENTER);cell.setPadding(0,0,0,0);cell.setIncludeFontPadding(false);cell.setMaxLines(1);
+    int fill=n!=0&&game.drawn.contains(n)?getPreferences(0).getInt("pref_marked_bg",0xffa9e9b7):n==0?getPreferences(0).getInt("pref_empty_bg",0xffeeeeee):getPreferences(0).getInt("pref_number_bg",Color.WHITE);cell.setBackground(bg(fill,0xff555555));
     LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(0,-1,1);cp.setMargins(dp(1),dp(1),dp(1),dp(1));row.addView(cell,cp);
    }
   }
@@ -123,21 +123,21 @@ showCards();LinearLayout history=new LinearLayout(this);history.setGravity(Gravi
  void aboutSettingsDialog(){new AlertDialog.Builder(this).setTitle("À propos").setMessage("LotoCartons V4 bêta\\nDéveloppeur : Selim BEYS\\nDéveloppé avec l'aide de l'intelligence artificielle.\\nFonctionnement hors ligne.").setPositiveButton("Fermer",null).show();}
  void personalizationDialog(){
   LinearLayout content=new LinearLayout(this);content.setOrientation(1);content.setPadding(dp(18),dp(10),dp(18),dp(10));content.setBackgroundColor(0xffeaf4fc);
-  String[] names={"Fond des cartons","Cases vides (grisées)","Numéros","Cases marquées"};
-  int[] defaults={0xffffffff,0xffe0e0e0,0xff142e52,0xff82d9a0};
-  String[] keys={"card_bg","empty_bg","number_color","marked_bg"};
+  String[] names={"Fond des cartons","Cases vides (grisées)","Numéros","Cases marquées","Fond des cases numérotées"};
+  int[] defaults={0xfff2f2f2,0xffeeeeee,Color.BLACK,0xffa9e9b7,Color.WHITE};
+  String[] keys={"card_bg","empty_bg","number_color","marked_bg","number_bg"};
   for(int i=0;i<names.length;i++){final int idx=i;Button b=styled(names[i]+"  ●",0xffffffff,0xff172b4d,14,()->chooseSettingsColor(keys[idx],names[idx],defaults[idx]));content.addView(b);}
   String[] sizes={"Tout petit","Moyen","Grand","Très grand"};
-  Button size=styled("Taille des numéros : "+sizes[Math.max(0,Math.min(3,getPreferences(0).getInt("pref_number_size",1)))],0xffffffff,0xff172b4d,14,()->new AlertDialog.Builder(this).setTitle("Taille des numéros").setSingleChoiceItems(sizes,getPreferences(0).getInt("pref_number_size",1),(d,choice)->{getPreferences(0).edit().putInt("pref_number_size",choice).apply();d.dismiss();personalizationDialog();}).setNegativeButton("Annuler",null).show());
+  Button size=styled("Taille des numéros : "+sizes[Math.max(0,Math.min(3,getPreferences(0).getInt("pref_number_size",1)))],0xffffffff,0xff172b4d,14,()->new AlertDialog.Builder(this).setTitle("Taille des numéros").setSingleChoiceItems(sizes,getPreferences(0).getInt("pref_number_size",1),(d,choice)->{getPreferences(0).edit().putInt("pref_number_size",choice).apply();d.dismiss();render();personalizationDialog();}).setNegativeButton("Annuler",null).show());
   content.addView(size);
-  TextView note=text("Ces préférences sont enregistrées. Leur application à l'affichage des cartons sera faite séparément pour préserver l'interface actuelle.",12);note.setTextColor(0xff64748b);content.addView(note);
+  Button reset=styled("Rétablir l'affichage d'origine",0xff2479b9,Color.WHITE,14,()->new AlertDialog.Builder(this).setTitle("Affichage d'origine").setMessage("Retrouver les couleurs et tailles de numéros initiales ?").setNegativeButton("Annuler",null).setPositiveButton("Réinitialiser",(d,w)->{getPreferences(0).edit().remove("pref_card_bg").remove("pref_empty_bg").remove("pref_number_color").remove("pref_marked_bg").remove("pref_number_bg").remove("pref_number_size").apply();render();toast("Affichage d'origine rétabli");}).show());content.addView(reset);
   new AlertDialog.Builder(this).setTitle("Personnalisation").setView(content).setPositiveButton("Fermer",null).show();
  }
  void chooseSettingsColor(String key,String title,int fallback){
   String[] labels={"Blanc","Bleu clair","Bleu","Gris clair","Gris foncé","Noir","Vert","Rouge","Jaune"};
   int[] colors={0xffffffff,0xffeaf4fc,0xff2479b9,0xffe0e0e0,0xff64748b,0xff172b4d,0xff82d9a0,0xffe35b5b,0xffffdf72};
   int current=getPreferences(0).getInt("pref_"+key,fallback),checked=-1;for(int i=0;i<colors.length;i++)if(colors[i]==current)checked=i;
-  new AlertDialog.Builder(this).setTitle(title).setSingleChoiceItems(labels,checked,(d,i)->{getPreferences(0).edit().putInt("pref_"+key,colors[i]).apply();d.dismiss();toast("Couleur enregistrée : "+labels[i]);}).setNegativeButton("Annuler",null).show();
+  new AlertDialog.Builder(this).setTitle(title).setSingleChoiceItems(labels,checked,(d,i)->{getPreferences(0).edit().putInt("pref_"+key,colors[i]).apply();d.dismiss();render();toast("Couleur enregistrée : "+labels[i]);}).setNegativeButton("Annuler",null).show();
  }
   void deleteScannedMenu(){
   ArrayList<Game.Card> scanned=new ArrayList<>();for(Game.Card c:game.cards)if(scannedIds.contains(c.id))scanned.add(c);
