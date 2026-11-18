@@ -1,4 +1,4 @@
 plugins { id 'com.android.application' }
 android { namespace 'fr.loto.cartons'; compileSdk 35
- defaultConfig { applicationId 'fr.loto.cartons'; minSdk 26; targetSdk 35; versionCode 3; versionName '3.0' } }
-dependencies { implementation 'com.tom-roush:pdfbox-android:2.0.27.0' }
+ defaultConfig { applicationId 'fr.loto.cartons'; minSdk 26; targetSdk 35; versionCode 4; versionName '4.0-beta' } }
+dependencies { implementation 'com.tom-roush:pdfbox-android:2.0.27.0'; implementation 'com.google.mlkit:text-recognition:16.0.1' }
